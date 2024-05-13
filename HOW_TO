@@ -1,0 +1,35 @@
+FIRST TIME USING SCRIPT
+1. Create homeserver.yaml file - the settings for server
+	docker run -it --rm \
+	    --mount type=volume,src=synapse-data,dst=/data \
+	    -e SYNAPSE_SERVER_NAME=my.matrix.host \
+	    -e SYNAPSE_REPORT_STATS=yes \
+	    matrixdotorg/synapse:latest generate
+2. Create user:
+	docker-compose exec -it synapse register_new_matrix_user http://localhost:8008 --config /data/homeserver.yaml --admin --user $ADMIN_USERNAME --password $ADMIN_PASSWORD
+3. Provide token:
+	curl --request POST \
+	  --url http://localhost:8008/_matrix/client/v3/login \
+	  --header 'Content-Type: application/json' \
+	  --data "{\"type\": \"m.login.password\",\"user\": \"$ADMIN_USERNAME\",\"password\": \"$ADMIN_PASSWORD\",\"device_id\": \"DEV\"}" \
+	> src/config/synapse_access_token.json
+
+MATRIX ADMINISTRATION
+The Synapse server can be managed with CLI tools or GUI tools - it does not have a build in admin GUI, it has to be a external tool
+I used -->>  https://github.com/Awesome-Technologies/synapse-admin - this is simple and enough for basic Administration
+There are many other options, best CLI option is -->> https://github.com/8go/matrix-commander
+
+MIGRATION FROM ROCKETCHAT TO MATRIX
+1. Export new database from Rocket
+2. Change the password for Admin user and for Database - homeserver.yaml and via docker-compose exec -it synapse register_new_matrix_user http://localhost:8008 --config /data/homeserver.yaml --admin --user $ADMIN_USERNAME --password $ADMIN_PASSWORD
+3. Put the changes in app-service.yml and in docker-compose.yml
+4. Create new token for script - with curl ...
+5. and then "nohup npm start &" - It will log into nohum.out - so you can check the progress there
+6. PG_DUMP databse from pg container
+7. dump.sql -> put it in /dockerentrypoint.d -> dockerhub for instructions
+
+
+USEFULL LINKS
+Script repository -->> https://github.com/verdigado/rocketchat2matrix
+Official Synapse repository -->> https://github.com/matrix-org/synapse/tree/develop/docker 
+Synapse Manual -->> https://matrix-org.github.io/synapse/latest/

@@ -1,0 +1,58 @@
+version: '3'
+
+services:
+  synapse:
+    image: docker.io/matrixdotorg/synapse:v1.104.0@sha256:ef4c18dae2d1658b9eb76188b0ba196bd3997e472c0ecde37fc0ce537bc399f4
+    # Since synapse does not retry to connect to the database, restart upon
+    # failure
+    restart: 'no'
+    # See the readme for a full documentation of the environment settings
+    # NOTE: You must edit homeserver.yaml to use postgres, it defaults to sqlite
+    environment:
+      - SYNAPSE_CONFIG_PATH=/data/homeserver.yaml
+      - SYNAPSE_REPORT_STATS=yes
+      - GID=991
+    volumes:
+      # You may either store all the files in a local folder
+      - ./files:/data
+      # .. or you may split this between different storage points
+      # - ./files:/data
+      # - /path/to/ssd:/data/uploads
+      # - /path/to/large_hdd:/data/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    # In order to expose Synapse, remove one of the following, you might for
+    # instance expose the TLS port directly:
+    ports:
+      - 8008:8008/tcp
+
+  postgres:
+    image: docker.io/postgres:12-alpine
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: 'no'
+    environment:
+    - POSTGRES_USER=synapse_user
+    - POSTGRES_DB=synapse
+    - POSTGRES_PASSWORD=Polska123
+    - PGDATA=/var/lib/postgresql/data/pgdata
+    - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+    - postgres:/var/lib/postgresql/data
+
+  synapse-admin:
+    container_name: synapse-admin
+    hostname: synapse-admin
+    image: awesometechnologies/synapse-admin:0.9.1@sha256:92b9346e514dd2cbde0c3d89f0f3120c16bd832dab1bfa232ba380f6a9499e4d
+    ports:
+      - '8080:80'
+    restart: 'no'
+
+volumes:
+  postgres:
